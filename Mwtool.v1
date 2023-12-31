@@ -10,14 +10,14 @@ echo -e "\n\n\n============================\n"
 echo "Malware signature identifiers"
 sup_quarantined | egrep ${_domain} | awk '{print $7}'
 echo -e "\n\n\n============================\n"
-echo "HEX file investigation:"
+echo "HEX file investigation:";
 _mwsi=$(sup_quarantined | egrep ${_domain} | awk '{print $7}')
+_mwsh=$(echo "${_mwsi}" | egrep -i 'HEX')
 
-if [ $(grep 'HEX' ${_mwsi}) -gt 0]
-then
-        echo "There are no HEX files"
+if [ -z "${_mwsh}" ]; then
+    echo "There are no HEX files"
 else
-        grep ${_mwsi} /usr/local/maldetect/sigs/hex.dat
+    cat /usr/local/maldetect/sigs/hex.dat | grep "${_mwsh}"
 fi
 # grep sed s/\'//g
 #sed 's/{HEX}//g'
