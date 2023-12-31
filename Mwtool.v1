@@ -1,15 +1,13 @@
-#Malware look-up tool
-mwtool()
 {
 _domain=$(sup_getdomain)
 echo "Domain name: ${_domain}";
-echo -e "\n\n\n============================\n"
-echo "Quarantined site files:"
+echo -e "\n\n============================\n"
+echo "Quarantined site files:";
 sup_quarantined | egrep ${_domain}
-echo -e "\n\n\n============================\n"
-echo "Malware signature identifiers"
+echo -e "\n\n============================\n"
+echo "Malware signature identifiers";
 sup_quarantined | egrep ${_domain} | awk '{print $7}'
-echo -e "\n\n\n============================\n"
+echo -e "\n\n============================\n"
 echo "HEX file investigation:";
 _mwsi=$(sup_quarantined | egrep ${_domain} | awk '{print $7}')
 _mwsh=$(echo "${_mwsi}" | egrep -i 'HEX')
@@ -19,10 +17,13 @@ if [ -z "${_mwsh}" ]; then
 else
     cat /usr/local/maldetect/sigs/hex.dat | grep "${_mwsh}"
 fi
-# grep sed s/\'//g
-#sed 's/{HEX}//g'
-#mctool | awk -F"{YARA}" '{print $2}'
+echo -e "\n\n============================\n"
 
-#echo "Hexadecimal to ASCII:
-#echo 496e646f58706c6f6974 | xxd -r -p
+_mwshex=$(echo 'cat /usr/local/maldetect/sigs/hex.dat' | grep "${_mwsh}" | awk -F":{HEX}" '{print $1}')
+
+#cat /usr/local/maldetect/sigs/hex.dat | grep {HEX}php.inject.miner2a2.489 | awk -F":{HEX}" '{print $1}'
+#2a2f2c2027272c205f5f46494c455f5f2f2a
+
+echo "Hexadecimal to ASCII:"
+echo "$_mwshex" | xxd -r -p
 }
