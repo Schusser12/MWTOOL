@@ -1,0 +1,28 @@
+#Malware look-up tool
+mwtool()
+{
+_domain=$(sup_getdomain)
+echo "Domain name: ${_domain}";
+echo -e "\n\n\n============================\n"
+echo "Quarantined site files:"
+sup_quarantined | egrep ${_domain}
+echo -e "\n\n\n============================\n"
+echo "Malware signature identifiers"
+sup_quarantined | egrep ${_domain} | awk '{print $7}'
+echo -e "\n\n\n============================\n"
+echo "HEX file investigation:"
+_mwsi=$(sup_quarantined | egrep ${_domain} | awk '{print $7}')
+
+if [ $(grep 'HEX' ${_mwsi}) -gt 0]
+then
+        echo "There are no HEX files"
+else
+        grep ${_mwsi} /usr/local/maldetect/sigs/hex.dat
+fi
+# grep sed s/\'//g
+#sed 's/{HEX}//g'
+#mctool | awk -F"{YARA}" '{print $2}'
+
+#echo "Hexadecimal to ASCII:
+#echo 496e646f58706c6f6974 | xxd -r -p
+}
