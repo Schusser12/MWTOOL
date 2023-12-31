@@ -19,10 +19,6 @@ else
 fi
 echo -e "\n\n============================\n"
 
-#_mwshex=$(echo 'cat /usr/local/maldetect/sigs/hex.dat' | grep "${_mwsh}" | awk -F":{HEX}" '{print $1}')
-#cat /usr/local/maldetect/sigs/hex.dat | grep {HEX}php.inject.miner2a2.489 | awk -F":{HEX}" '{print $1}'
-#2a2f2c2027272c205f5f46494c455f5f2f2a
-
 for file in /usr/local/maldetect/sigs/hex.dat; do
   _mwshex=$(grep "${_mwsh}" "$file" | awk -F":{HEX}" '{print $1}')
   #Convertion of the values of _mwshex
