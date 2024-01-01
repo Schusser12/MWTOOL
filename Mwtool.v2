@@ -1,0 +1,46 @@
+#Malware look-up tool
+mwtool()
+{
+_domain=$(sup_getdomain)
+echo "Domain name: ${_domain}";
+echo -e "\n============================\n"
+echo "Quarantined site files:";
+sup_quarantined | egrep ${_domain}
+echo -e "\n============================\n"
+echo "Malware signature identifiers";
+sup_quarantined | egrep ${_domain} | awk '{print $7}'
+echo -e "\n============================\n"
+echo "HEX file investigation:";
+_mwsi=$(sup_quarantined | egrep ${_domain} | awk '{print $7}')
+_mwsh=$(echo "${_mwsi}" | egrep -i 'HEX')
+
+if [ -z "${_mwsh}" ]; then
+    echo "There are no HEX files"
+else
+    cat /usr/local/maldetect/sigs/hex.dat | grep "${_mwsh}"
+fi
+echo -e "\n============================\n"
+
+file="/usr/local/maldetect/sigs/hex.dat"
+output=""
+prev_result=""
+IFS=''
+while IFS= read -r line; do
+  _mwshex=$(grep "${_mwsh}" "$file" | awk -F":{HEX}" '{print $1}')
+  _mwsascii=$(echo "$_mwshex" | xxd -r -p)
+  if [[ $_mwsascii != $prev_result ]]; then
+    if [[ -n $output ]]; then
+      output+=$'\n'
+    fi
+    output+=$_mwsascii
+    prev_result=$_mwsascii
+  fi
+done < <(grep "${_mwsh}" "$file")
+
+IFS=$'\n' read -d '' -ra parts <<< "$output"
+
+#Print each part on a new line
+for part in "${parts[@]}"; do
+  echo "$part"
+done
+}
