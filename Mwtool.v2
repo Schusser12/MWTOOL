@@ -88,4 +88,4 @@ fi
 
   echo -e "\n============================\n"
 
-}
+} > ~/mwtool.txt #Redirects the function output into a file created within the user home directory
