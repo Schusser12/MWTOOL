@@ -1,19 +1,28 @@
 #Malware look-up tool
-mwtool()
-{
-_domain=$(sup_getdomain)
+mwtool(){
+  _domain=$(sup_getdomain)
+
+  # Print domain name
   echo "Domain name: ${_domain}"
+
   echo -e "\n============================\n"
+
+  # Print quarantined site files
   echo "Quarantined site files:"
   sup_quarantined | egrep "${_domain}"
+
   echo -e "\n============================\n"
+
+  # Print malware signature identifiers
   echo "Malware signature identifiers:"
   sup_quarantined | egrep "${_domain}" | awk '{print $7}'
+
   echo -e "\n============================\n"
-#HEX TIME
+
+  # HEX File Investigation
   echo "HEX file investigation:"
-  _mwsi1=$(sup_quarantined | egrep "${_domain}" | awk '{print $7}') ###List of all Quarantined files
-  _mwsh=$(echo "${_mwsi1}" | egrep -i 'HEX') #List of all HEX files that were quarantined
+  _mwsi1=$(sup_quarantined | egrep "${_domain}" | awk '{print $7}')
+  _mwsh=$(echo "${_mwsi1}" | egrep -i 'HEX')
 
   if [[ -z "${_mwsh}" ]]; then
     echo "There are no HEX files"
@@ -23,30 +32,37 @@ _domain=$(sup_getdomain)
 
   echo -e "\n============================\n"
 
+  # Hexadecimal to ASCII conversion
   echo "Hexadecimal to ASCII:"
-file="/usr/local/maldetect/sigs/hex.dat"
-output=""
-prev_result=""
-IFS=''
-while IFS= read -r line; do
-  _mwshex=$(echo "$line" | awk -F":{HEX}" '{print $1}')
-  _mwsascii=$(echo "$_mwshex" | xxd -r -p)
-  if [[ $_mwsascii != $prev_result ]]; then
-    if [[ -n $output ]]; then
-      output+=$'\n'
+
+  file="/usr/local/maldetect/sigs/hex.dat"
+  output=""
+  prev_result=""
+
+  while IFS= read -r line; do
+    _mwshex=$(echo "$line" | awk -F":{HEX}" '{print $1}')
+    _mwsascii=$(echo "$_mwshex" | xxd -r -p)
+
+    if [[ $_mwsascii != $prev_result ]]; then
+      if [[ -n $output ]]; then
+        output+=$'\n'
+      fi
+
+      output+=$_mwsascii
+      prev_result=$_mwsascii
     fi
-    output+=$_mwsascii
-    prev_result=$_mwsascii
-  fi
-done < <(grep "${_mwsh}" "$file")
 
-IFS=$'\n' read -d '' -ra parts <<< "$output"
+  done < <(grep "${_mwsh}" "$file")
 
-# Print each part on a new line
-for part in "${parts[@]}"; do
-  echo "$part"
-done
+  IFS=$'\n' read -d '' -ra parts <<< "$output"
+
+  # Print each part on a new line
+  for part in "${parts[@]}"; do
+    echo "$part"
+  done
+
   echo -e "\n============================\n"
+}
 
 #YARA TIME
 #IDK if this stuff below even works, constantly getting signature not found in clamav lib, so it's possible they can't be iterated that way.
