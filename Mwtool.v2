@@ -1,4 +1,4 @@
-#Malware look-up tool
+#Malware look-up tool -per-site-basis
 mwtool(){
   _domain=$(sup_getdomain)
 
