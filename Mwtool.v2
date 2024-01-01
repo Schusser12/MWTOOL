@@ -73,19 +73,19 @@ fi
   echo "YARA file investigation:"
   _mwsy=$(echo "${_mwsi1}" | egrep -i 'YARA')  #List of all YARA files that were quarantined
 
-if [[ -z "${_mwsy}" ]]; then
-  echo "There are no YARA files"
-else
-  while IFS= read -r line; do
-    _mwsi2=$(sup_quarantined | egrep "${_domain}" | awk '{print $6}')  # Quarantined file full-path
-    _mwsyara=$(echo "$_mwsy" | awk -F"{YARA}" '{print $2}')   #Quarantined file malware string identifier
-    _mwsoutput=$(sup_inspectmal -f "$_mwsi2" -s "$_mwsyara")
-    if [[ -n $_mwsoutput ]]; then
-      echo "$_mwsoutput"
-    fi
-  done <<< "${_mwsy}"
+ if [[ -z "${_mwsy}" ]]; then
+    echo "There are no YARA files"
+  else
+    while IFS= read -r line; do
+      _mwsi2=$(sup_quarantined | egrep "${_domain}" | awk '{print $6}')  # Quarantined file full-path
+      _mwsyara=$(echo "$line" | awk -F"{YARA}" '{print $2}')   # Quarantined file malware string identifier
+      _mwsoutput=$(sup_inspectmal -f "$_mwsi2" -s "$_mwsyara" 2>/dev/null)  # Redirect error to /dev/null
+      if [[ -n $_mwsoutput ]]; then
+        echo "$_mwsoutput"
+      fi
+    done <<< "${_mwsy}"
 fi
-
   echo -e "\n============================\n"
 
-} > ~/mwtool.txt #Redirects the function output into a file created within the user home directory
+} > ~/mwtool-$(date +%m-%d-%yT%H:%M).txt #Redirects the function output into a file created within the user home directory
+
