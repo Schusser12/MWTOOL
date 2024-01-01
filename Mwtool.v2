@@ -62,7 +62,7 @@ mwtool(){
   done
 
   echo -e "\n============================\n"
-}
+
 
 #YARA TIME
 #IDK if this stuff below even works, constantly getting signature not found in clamav lib, so it's possible they can't be iterated that way.
