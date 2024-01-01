@@ -19,12 +19,12 @@ mwtool(){
 
   echo -e "\n============================\n"
 
- # HEX File Investigation
-  echo "HEX file investigation:"
+  # HEX File Investigation
   _mwsi1=$(sup_quarantined | egrep "${_domain}" | awk '{print $7}') ##Malware string identifier
   _mwsh=$(echo "${_mwsi1}" | egrep -i 'HEX')
-
-  if [[ -z "${_mwsh}" ]]; then
+    function investigate_hex_files() {
+      echo "HEX file investigation:"
+         if [[ -z "${_mwsh}" ]]; then
     echo "There are no HEX files"
   else
     grep "${_mwsh}" /usr/local/maldetect/sigs/hex.dat
@@ -33,7 +33,7 @@ mwtool(){
   echo -e "\n============================\n"
 
   # Hexadecimal to ASCII conversion
-:'  echo "Hexadecimal to ASCII:"
+  echo "Hexadecimal to ASCII:"
 
   file="/usr/local/maldetect/sigs/hex.dat"
   output=""
@@ -62,12 +62,14 @@ mwtool(){
   done
 
   echo -e "\n============================\n"
-'
+}
+
+# Call the function if HEX files are detected
+if [[ -n "${_mwsh}" ]]; then
+  investigate_hex_files
+fi
 
 #YARA TIME
-#IDK if this stuff below even works, constantly getting signature not found in clamav lib, so it's possible they can't be iterated that way.
-#If I relog into the server, the command starts working 1-by-1, but not in bulk...
-
   echo "YARA file investigation:"
   _mwsy=$(echo "${_mwsi1}" | egrep -i 'YARA')  #List of all YARA files that were quarantined
 
@@ -77,7 +79,6 @@ else
   while IFS= read -r line; do
     _mwsi2=$(sup_quarantined | egrep "${_domain}" | awk '{print $6}')  # Quarantined file full-path
     _mwsyara=$(echo "$_mwsy" | awk -F"{YARA}" '{print $2}')   #Quarantined file malware string identifier
-#    _mwsyara=$(echo "${_mwsi1}" | awk -F"{YARA}" '{print $2}')   #Quarantined file malware string identifier
     _mwsoutput=$(sup_inspectmal -f "$_mwsi2" -s "$_mwsyara")
     if [[ -n $_mwsoutput ]]; then
       echo "$_mwsoutput"
@@ -86,4 +87,5 @@ else
 fi
 
   echo -e "\n============================\n"
+
 }
