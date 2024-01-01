@@ -49,8 +49,8 @@ done
   echo -e "\n============================\n"
 
 #YARA TIME
-#IDK if this stuff below even works, constantly getting signature not found in clamav lib, so it's possible they can't be iterared that way.
-#If I log out and log back into the server, the command starts working 1-by-1, but not in bulk...
+#IDK if this stuff below even works, constantly getting signature not found in clamav lib, so it's possible they can't be iterated that way.
+#If I relog into the server, the command starts working 1-by-1, but not in bulk...
 
 #  echo "YARA file investigation:"
 #  _mwsy=$(echo "${_mwsi1}" | egrep -i 'YARA')  #List of all YARA files that were quarantined
