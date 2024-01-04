@@ -17,16 +17,19 @@ mwtool() {
   _mwsi1=$(sup_quarantined | egrep "${_domain}" | awk '{print $7}') #Malware string identifier
   _hex_identifiers=""
   _yara_identifiers=""
+  _cav_identifiers=""
 
   if [[ -n "${_mwsi1}" ]]; then
     _hex_identifiers=$(echo "${_mwsi1}" | egrep -i 'HEX')   #List of all HEX files that were quarantined
     _yara_identifiers=$(echo "${_mwsi1}" | egrep -i 'YARA') #List of all YARA files that were quarantined
+    _cav_identifiers=$(echo "${_mwsi1}" | egrep -i 'CAV') #List of all CAV files that were quarantined  
   fi
 
   # Sort and print HEX identifiers first, followed by YARA identifiers
   echo "Malware signature identifiers:"
   echo "${_hex_identifiers}" | sort
   echo "${_yara_identifiers}" | sort
+  echo "${_cav_identifiers}" | sort
 
   echo -e "\n============================\n"
 
@@ -86,9 +89,11 @@ function investigate_yara_files() {
     else
     declare -A yara_outputs
     while IFS= read -r line; do
+
       _mwsi2=$(sup_quarantined | egrep "${_domain}" | awk '{print $6}') # Quarantined file full-path
       _mwsyara=$(echo "$line" | awk -F"{YARA}" '{print $2}') # Quarantined file malware string identifier
       _mwsoutput=$(sup_inspectmal -f "$_mwsi2" -s "$_mwsyara" 2>/dev/null)  # Redirect error to /dev/null
+
       if [[ -n $_mwsoutput ]]; then
         if [[ -z ${yara_outputs[$_mwsoutput]} ]]; then
           yara_outputs[$_mwsoutput]=1
@@ -104,5 +109,11 @@ function investigate_yara_files() {
   fi
 
   echo -e "\n============================\n"
+
+  # CAV file investigation
+  echo "CAV file investigation:"
+  echo "Not implemented yet!"
+
+ echo -e "\n============================\n"
 
 } > ~/mwtool-$(date +%m-%d-%yT%H:%M).txt #Redirects the function output into a file created within the user home directory
