@@ -103,7 +103,7 @@ function investigate_yara_files() {
     done <<< "${_yara_identifiers}"
   fi
 }
-# Call the functions if YARA files are detected
+# Call the function if YARA files are detected
   if [[ -n "${_yara_identifiers}" ]]; then
     investigate_yara_files
   fi
