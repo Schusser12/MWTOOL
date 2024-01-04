@@ -1,7 +1,7 @@
 #Malware look-up tool -per-site-basis
-mwtool() {
+mwtool(){
   _domain=$(sup_getdomain)
-  
+
   # Print domain name
   echo "Domain name: ${_domain}"
 
@@ -13,87 +13,78 @@ mwtool() {
 
   echo -e "\n============================\n"
 
-  # Malware signature identifiers
-  _mwsi1=$(sup_quarantined | egrep "${_domain}" | awk '{print $7}') #Malware string identifier
-  _hex_identifiers=""
-  _yara_identifiers=""
-
-  if [[ -n "${_mwsi1}" ]]; then
-    _hex_identifiers=$(echo "${_mwsi1}" | egrep -i 'HEX')   #List of all HEX files that were quarantined
-    _yara_identifiers=$(echo "${_mwsi1}" | egrep -i 'YARA') #List of all YARA files that were quarantined
-  fi
-
-  # Sort and print HEX identifiers first, followed by YARA identifiers
+  # Print malware signature identifiers
   echo "Malware signature identifiers:"
-  echo "${_hex_identifiers}" | sort 
-  echo "${_yara_identifiers}" | sort 
+  sup_quarantined | egrep "${_domain}" | awk '{print $7}'
 
   echo -e "\n============================\n"
 
   # HEX File Investigation
-  function investigate_hex_files() {
-    echo "HEX file investigation:"
-    if [[ -z "${_hex_identifiers}" ]]; then
-      echo "There are no HEX files"
-    else
-      grep "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat
-    fi
-
-    echo -e "\n============================\n"
-
-    # Hexadecimal to ASCII conversion
-    echo "Hexadecimal to ASCII:"
-
-    file="/usr/local/maldetect/sigs/hex.dat"
-    output=""
-    prev_result=""
-
-    while IFS= read -r line; do
-      _mwshex=$(echo "$line" | awk -F":{HEX}" '{print $1}')
-      _mwsascii=$(echo "$_mwshex" | xxd -r -p)
-
-      if [[ $_mwsascii != $prev_result ]]; then
-        if [[ -n $output ]]; then
-          output+=$'\n'
-        fi
-
-        output+=$_mwsascii
-        prev_result=$_mwsascii
-      fi
-
-    done < <(grep "${_hex_identifiers}" "$file")
-
-    IFS=$'\n' read -d '' -ra parts <<< "$output"
-
-    # Print each part on a new line
-    for part in "${parts[@]}"; do
-      echo "$part"
-    done
-
-    echo -e "\n============================\n"
-  }
-
-  # Call the function if HEX files are detected
-  if [[ -n "${_hex_identifiers}" ]]; then
-    investigate_hex_files
+  _mwsi1=$(sup_quarantined | egrep "${_domain}" | awk '{print $7}') ##Malware string identifier
+  _mwsh=$(echo "${_mwsi1}" | egrep -i 'HEX')
+    function investigate_hex_files() {
+      echo "HEX file investigation:"
+         if [[ -z "${_mwsh}" ]]; then
+    echo "There are no HEX files"
+  else
+    grep "${_mwsh}" /usr/local/maldetect/sigs/hex.dat
   fi
 
-  # YARA file investigation
-  echo "YARA file investigation:"
+  echo -e "\n============================\n"
 
-  if [[ -z "${_yara_identifiers}" ]]; then
+  # Hexadecimal to ASCII conversion
+  echo "Hexadecimal to ASCII:"
+
+  file="/usr/local/maldetect/sigs/hex.dat"
+  output=""
+  prev_result=""
+
+  while IFS= read -r line; do
+    _mwshex=$(echo "$line" | awk -F":{HEX}" '{print $1}')
+    _mwsascii=$(echo "$_mwshex" | xxd -r -p)
+
+    if [[ $_mwsascii != $prev_result ]]; then
+      if [[ -n $output ]]; then
+        output+=$'\n'
+      fi
+
+      output+=$_mwsascii
+      prev_result=$_mwsascii
+    fi
+
+  done < <(grep "${_mwsh}" "$file")
+
+  IFS=$'\n' read -d '' -ra parts <<< "$output"
+
+  # Print each part on a new line
+  for part in "${parts[@]}"; do
+    echo "$part"
+  done
+
+  echo -e "\n============================\n"
+}
+
+# Call the function if HEX files are detected
+if [[ -n "${_mwsh}" ]]; then
+  investigate_hex_files
+fi
+
+#YARA TIME
+  echo "YARA file investigation:"
+  _mwsy=$(echo "${_mwsi1}" | egrep -i 'YARA')  #List of all YARA files that were quarantined
+
+ if [[ -z "${_mwsy}" ]]; then
     echo "There are no YARA files"
   else
     while IFS= read -r line; do
-      _mwsi2=$(sup_quarantined | egrep "${_domain}" | awk '{print $6}') # Quarantined file full-path
-      _mwsyara=$(echo "$line" | awk -F"{YARA}" '{print $2}') # Quarantined file malware string identifier
+      _mwsi2=$(sup_quarantined | egrep "${_domain}" | awk '{print $6}')  # Quarantined file full-path
+      _mwsyara=$(echo "$line" | awk -F"{YARA}" '{print $2}')   # Quarantined file malware string identifier
       _mwsoutput=$(sup_inspectmal -f "$_mwsi2" -s "$_mwsyara" 2>/dev/null)  # Redirect error to /dev/null
       if [[ -n $_mwsoutput ]]; then
         echo "$_mwsoutput"
       fi
-    done <<< "${_yara_identifiers}"
-  fi
-
+    done <<< "${_mwsy}"
+fi
   echo -e "\n============================\n"
 
 } > ~/mwtool-$(date +%m-%d-%yT%H:%M).txt #Redirects the function output into a file created within the user home directory
