@@ -79,7 +79,11 @@ mwtool() {
   # Call the function if HEX files are detected
   if [[ -n "${_hex_identifiers}" ]]; then
     investigate_hex_files
+  else
+    echo "There are no HEX files"
+    echo -e "\n============================\n"
   fi
+
 
   # YARA file investigation
 function investigate_yara_files() {
@@ -106,7 +110,13 @@ function investigate_yara_files() {
 # Call the function if YARA files are detected
   if [[ -n "${_yara_identifiers}" ]]; then
     investigate_yara_files
+  else
+    echo "There are no YARA files"
+    echo -e "\n============================\n"
   fi
+
+  echo -e "\n============================\n"
+
 
   echo -e "\n============================\n"
 
