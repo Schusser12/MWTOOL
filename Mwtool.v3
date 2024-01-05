@@ -120,7 +120,7 @@ function investigate_yara_files() {
 
  echo -e "\n============================\n"
 
-} >/dev/null 2>&1 # Redirect output to /dev/null
+} >~/mwtool-$(date +%m-%d-%yT%H:%M).txt
 
 # Print a notification in the terminal
   echo "Output redirected to: $output_file" > /dev/tty
