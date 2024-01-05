@@ -11,7 +11,7 @@ _domain=$(sup_getdomain)
 
   # Print quarantined site files
   echo "Quarantined site files:"
-  sup_quarantined | egrep "${_domain}"
+  sup_quarantined | egrep "${_domain}" | sort -k4n -k2M -k3n
 
   echo -e "\n============================\n"
 
