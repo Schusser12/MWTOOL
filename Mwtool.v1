@@ -1,4 +1,4 @@
-{
+mwtool(){
 _domain=$(sup_getdomain)
 echo "Domain name: ${_domain}";
 echo -e "\n\n============================\n"
