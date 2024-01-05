@@ -27,11 +27,9 @@ _domain=$(sup_getdomain)
     _cav_identifiers=$(echo "${_mwsi1}" | egrep -i 'CAV') #List of all CAV files that were quarantined  
   fi
 
-  # Sort and print HEX identifiers first, followed by YARA identifiers
+  # Sort and print HEX identifiers first, followed by YARA identifiers, ending with CAV
   echo "Malware signature identifiers:"
-  echo "${_hex_identifiers}" | sort
-  echo "${_yara_identifiers}" | sort
-  echo "${_cav_identifiers}" | sort
+  printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort
 
   echo -e "\n============================\n"
 
@@ -95,11 +93,9 @@ function investigate_yara_files() {
       _mwsyara=$(echo "$line" | awk -F"{YARA}" '{print $2}') # Quarantined file malware string identifier
       _mwsoutput=$(sup_inspectmal -f "$_mwsi2" -s "$_mwsyara" 2>/dev/null)  # Redirect error to /dev/null
 
-      if [[ -n $_mwsoutput ]]; then
-        if [[ -z ${yara_outputs[$_mwsoutput]} ]]; then
-          yara_outputs[$_mwsoutput]=1
-          echo "$_mwsoutput"
-        fi
+      if [[ -n $_mwsoutput ]] && [[ -z ${yara_outputs[$_mwsoutput]} ]]; then
+        yara_outputs[$_mwsoutput]=1
+        echo "$_mwsoutput"
       fi
     done <<< "${_yara_identifiers}"
   fi
@@ -120,7 +116,7 @@ function investigate_yara_files() {
 
  echo -e "\n============================\n"
 
-} >~/mwtool-$(date +%m-%d-%yT%H:%M).txt
+} > "$output_file"
 
 # Print a notification in the terminal
   echo "Output redirected to: $output_file" > /dev/tty
