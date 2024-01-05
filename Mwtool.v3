@@ -1,6 +1,8 @@
 #Malware look-up tool -per-site-basis
 mwtool() {
-  _domain=$(sup_getdomain)
+output_file="~/mwtool-$(date +%m-%d-%yT%H:%M).txt"
+{
+_domain=$(sup_getdomain)
 
   # Print domain name
   echo "Domain name: ${_domain}"
@@ -118,4 +120,9 @@ function investigate_yara_files() {
 
  echo -e "\n============================\n"
 
-} > ~/mwtool-$(date +%m-%d-%yT%H:%M).txt #Redirects the function output into a file created within the user home directory
+} >/dev/null 2>&1 # Redirect output to /dev/null
+
+# Print a notification in the terminal
+  echo "Output redirected to: $output_file" > /dev/tty
+}
+
