@@ -116,7 +116,7 @@ function investigate_yara_files() {
 
  echo -e "\n============================\n"
 
-} > "$output_file"
+} > ~/mwtool-$(date +%m-%d-%yT%H:%M).txt #Redirects the function output into a file created within the user home directory
 
 # Print a notification in the terminal
   echo "Output redirected to: $output_file" > /dev/tty
