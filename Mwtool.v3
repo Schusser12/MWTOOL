@@ -112,9 +112,6 @@ function investigate_yara_files() {
 
   echo -e "\n============================\n"
 
-
-  echo -e "\n============================\n"
-
   # CAV file investigation
   echo "CAV file investigation:"
   echo "Not implemented yet!"
