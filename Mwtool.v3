@@ -33,12 +33,10 @@ mwtool() {
 
   echo -e "\n============================\n"
 
-  # HEX File Investigation
-  function investigate_hex_files() {
+ # HEX File Investigation
     echo "HEX file investigation:"
-    if [[ -z "${_hex_identifiers}" ]]; then
-      echo "There are no HEX files"
-    else
+  function investigate_hex_files() {
+    if [[ -n "${_hex_identifiers}" ]]; then
       grep "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat
     fi
 
@@ -76,7 +74,7 @@ mwtool() {
     echo -e "\n============================\n"
   }
 
-  # Call the function if HEX files are detected
+ # Call the function if HEX files are detected
   if [[ -n "${_hex_identifiers}" ]]; then
     investigate_hex_files
   else
@@ -84,13 +82,10 @@ mwtool() {
     echo -e "\n============================\n"
   fi
 
-
   # YARA file investigation
+    echo "YARA file investigation:"
 function investigate_yara_files() {
-  echo "YARA file investigation:"
-  if [[ -z "${_yara_identifiers}" ]]; then
-    echo "There are no YARA files"
-    else
+  if [[ -n "${_yara_identifiers}" ]]; then
     declare -A yara_outputs
     while IFS= read -r line; do
 
