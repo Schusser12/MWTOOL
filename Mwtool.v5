@@ -82,24 +82,26 @@ _domain=$(sup_getdomain)
     echo -e "\n============================\n"
   fi
 
-  # YARA file investigation
+   #YARA file investigation
     echo "YARA file investigation:"
 function investigate_yara_files() {
   if [[ -n "${_yara_identifiers}" ]]; then
-    declare -A yara_outputs
     while IFS= read -r line; do
+       _mwsi2=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $4}') # Quarantined file full-path
+      _mwsyara=$(echo "$line" | awk 'match($0, /{YARA}/) {print substr($0, RSTART+6)}')  # Extract YARA rule name
 
-      _mwsi2=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $6}') # Quarantined file full-path
-      _mwsyara=$(echo "$line" | awk -F"{YARA}" '{print $2}') # Quarantined file malware string identifier
-      _mwsoutput=$(sup_inspectmal -f "$_mwsi2" -s "$_mwsyara" 2>/dev/null)  # Redirect error to /dev/null
+      if [[ -n $_mwsyara ]]; then
+        _mwsoutput=$(sup_inspectmal -f "$_mwsi2" -s "$_mwsyara" 2>/dev/null)  # Redirect error to /dev/null
 
-      if [[ -n $_mwsoutput ]] && [[ -z ${yara_outputs[$_mwsoutput]} ]]; then
-        yara_outputs[$_mwsoutput]=1
-        echo "$_mwsoutput"
+        if [[ -n $_mwsoutput ]]; then
+          echo "$_mwsoutput"
+        fi
       fi
     done <<< "${_yara_identifiers}"
   fi
 }
+
+
 # Call the function if YARA files are detected
   if [[ -n "${_yara_identifiers}" ]]; then
     investigate_yara_files
