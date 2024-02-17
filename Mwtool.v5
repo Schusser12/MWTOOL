@@ -16,7 +16,7 @@ _domain=$(sup_getdomain)
   echo -e "\n============================\n"
 
   # Malware signature identifiers
-  #_mwsi1=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $5}') #Malware string identifier
+  _mwsi1=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $5}') #Malware string identifier
   _hex_identifiers=""
   _yara_identifiers=""
   _cav_identifiers=""
