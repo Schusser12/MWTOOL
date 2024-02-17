@@ -91,7 +91,7 @@ echo -e "\n============================\n"
     echo "CAV file investigation:"
     echo "Not implemented yet!"
     echo -e "\n============================\n"
-  } > "$output_file" # Redirect the function output to a file
+  } > ~/mwtool-$(date +%m-%d-%yT%H:%M).txt # Redirect the function output to a file
 
   # Print a notification in the terminal
   echo "Output redirected to: $output_file" > /dev/tty
