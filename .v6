@@ -1,0 +1,75 @@
+#Malware look-up tool -per-site-basis
+mwtool() {
+  output_file="~/mwtool-$(date +%m-%d-%yT%H:%M).txt"
+  {
+    # Get domain name
+    _domain=$(sup_getdomain)
+
+   # Print domain name
+  echo "Domain name: ${_domain}"
+  echo -e "\n============================\n"
+    
+    # Print quarantined site files
+    echo "Quarantined site files:"
+    quarantined_files=$(sup_quarantined)
+
+    
+    # Extract malware signature identifiers
+    _mwsi1=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $5}')
+    _hex_identifiers=$(echo "${_mwsi1}" | grep 'HEX')
+    _yara_identifiers=$(echo "${_mwsi1}" | grep 'YARA')
+    _cav_identifiers=$(echo "${_mwsi1}" | grep 'CAV')
+
+    # Print domain name and quarantined site files
+    echo "Domain name: ${_domain}"
+    echo -e "\n============================\n"
+    echo "Quarantined site files:"
+    echo "$quarantined_files"
+    echo -e "\n============================\n"
+
+    # Print malware signature identifiers
+    echo "Malware signature identifiers:"
+    printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort
+    echo -e "\n============================\n"
+
+    # HEX file investigation
+    echo "HEX file investigation:"
+    investigate_hex_files() {
+      if [ -n "${_hex_identifiers}" ]; then
+        grep "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat
+      else
+        echo "There are no HEX files"
+      fi
+      echo -e "\n============================\n"
+    }
+    investigate_hex_files
+
+    # YARA file investigation
+    echo "YARA file investigation:"
+    investigate_yara_files() {
+      if [ -n "${_yara_identifiers}" ]; then
+        declare -A yara_outputs
+        while IFS= read -r line; do
+          _mwsyara=$(echo "$line" | awk 'match($0, /{YARA}/) {print substr($0, RSTART+6)}')
+          _mwsoutput=$(sup_inspectmal -f "$quarantined_files" -s "$_mwsyara" 2>/dev/null)
+          if [ -n "$_mwsoutput" ] && [ -z "${yara_outputs[$_mwsoutput]}" ]; then
+            yara_outputs[$_mwsoutput]=1
+            echo "$_mwsoutput"
+          fi
+        done <<< "${_yara_identifiers}"
+      else
+        echo "There are no YARA files"
+      fi
+      echo -e "\n============================\n"
+    }
+    investigate_yara_files
+
+    # CAV file investigation (placeholder)
+    echo "CAV file investigation:"
+    echo "Not implemented yet!"
+    echo -e "\n============================\n"
+  } > "$output_file" # Redirect the function output to a file
+
+  # Print a notification in the terminal
+  echo "Output redirected to: $output_file" > /dev/tty
+}
