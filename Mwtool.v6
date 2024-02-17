@@ -1,3 +1,4 @@
+#Malware look-up tool -per-site-basis
 mwtool() {
   output_file="~/mwtool-$(date +%m-%d-%yT%H:%M).txt"
   {
