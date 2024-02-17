@@ -1,1 +1,124 @@
+#Malware look-up tool -per-site-basis
+mwtool() {
+output_file="~/mwtool-$(date +%m-%d-%yT%H:%M).txt"
+{
+_domain=$(sup_getdomain)
 
+  # Print domain name
+  echo "Domain name: ${_domain}"
+
+  echo -e "\n============================\n"
+
+  # Print quarantined site files
+  echo "Quarantined site files:"
+  quarantined_files=$(sup_quarantined)
+  #echo "$quarantined_files" | awk -F'\t' -v domain="${_domain}" '$0 ~ domain {print $0}' | sort -k4n -k2M -k3n #Sort quarantined files by date
+  echo "$quarantined_files"
+  echo -e "\n============================\n"
+
+  # Malware signature identifiers
+  _mwsi1=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $7}') #Malware string identifier
+  _hex_identifiers=""
+  _yara_identifiers=""
+  _cav_identifiers=""
+
+  if [[ -n "${_mwsi1}" ]]; then
+    _hex_identifiers=$(echo "${_mwsi1}" | egrep 'HEX')   #List of all HEX files that were quarantined
+    _yara_identifiers=$(echo "${_mwsi1}" | egrep 'YARA') #List of all YARA files that were quarantined
+    _cav_identifiers=$(echo "${_mwsi1}" | egrep 'CAV') #List of all CAV files that were quarantined
+  fi
+
+  # Sort and print HEX identifiers first, followed by YARA identifiers, ending with CAV
+  echo "Malware signature identifiers:"
+  printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort
+
+  echo -e "\n============================\n"
+
+ # HEX File Investigation
+    echo "HEX file investigation:"
+  function investigate_hex_files() {
+    if [[ -n "${_hex_identifiers}" ]]; then
+      grep "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat
+    fi
+
+    echo -e "\n============================\n"
+
+    # Hexadecimal to ASCII conversion
+    echo "Hexadecimal to ASCII:"
+
+    file="/usr/local/maldetect/sigs/hex.dat"
+    output=""
+    prev_result=""
+
+    while IFS= read -r line; do
+      _mwshex=$(echo "$line" | awk -F":{HEX}" '{print $1}')
+      _mwsascii=$(echo "$_mwshex" | xxd -r -p)
+
+      if [[ $_mwsascii != $prev_result ]]; then
+        if [[ -n $output ]]; then
+          output+=$'\n'
+        fi
+
+        output+=$_mwsascii
+        prev_result=$_mwsascii
+      fi
+
+    done < <(grep "${_hex_identifiers}" "$file")
+
+    IFS=$'\n' read -d '' -ra parts <<< "$output"
+
+    # Print each part on a new line
+    for part in "${parts[@]}"; do
+      echo "$part"
+    done
+
+    echo -e "\n============================\n"
+  }
+
+ # Call the function if HEX files are detected
+  if [[ -n "${_hex_identifiers}" ]]; then
+    investigate_hex_files
+  else
+    echo "There are no HEX files"
+    echo -e "\n============================\n"
+  fi
+
+  # YARA file investigation
+    echo "YARA file investigation:"
+function investigate_yara_files() {
+  if [[ -n "${_yara_identifiers}" ]]; then
+    declare -A yara_outputs
+    while IFS= read -r line; do
+
+      _mwsi2=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $6}') # Quarantined file full-path
+      _mwsyara=$(echo "$line" | awk -F"{YARA}" '{print $2}') # Quarantined file malware string identifier
+      _mwsoutput=$(sup_inspectmal -f "$_mwsi2" -s "$_mwsyara" 2>/dev/null)  # Redirect error to /dev/null
+
+      if [[ -n $_mwsoutput ]] && [[ -z ${yara_outputs[$_mwsoutput]} ]]; then
+        yara_outputs[$_mwsoutput]=1
+        echo "$_mwsoutput"
+      fi
+    done <<< "${_yara_identifiers}"
+  fi
+}
+# Call the function if YARA files are detected
+  if [[ -n "${_yara_identifiers}" ]]; then
+    investigate_yara_files
+  else
+    echo "There are no YARA files"
+    echo -e "\n============================\n"
+  fi
+
+  echo -e "\n============================\n"
+
+  # CAV file investigation
+  echo "CAV file investigation:"
+  echo "Not implemented yet!"
+
+ echo -e "\n============================\n"
+
+} > ~/mwtool-$(date +%m-%d-%yT%H:%M).txt #Redirects the function output into a file created within the user home directory
+
+# Print a notification in the terminal
+  echo "Output redirected to: $output_file" > /dev/tty
+}
