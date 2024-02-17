@@ -1,24 +1,17 @@
-#Malware look-up tool -per-site-basis
 mwtool() {
   output_file="~/mwtool-$(date +%m-%d-%yT%H:%M).txt"
   {
     # Get domain name
     _domain=$(sup_getdomain)
-
-   # Print domain name
-  echo "Domain name: ${_domain}"
-  echo -e "\n============================\n"
     
-    # Print quarantined site files
-    echo "Quarantined site files:"
+    # Get quarantined site files
     quarantined_files=$(sup_quarantined)
-
     
     # Extract malware signature identifiers
     _mwsi1=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $5}')
-    _hex_identifiers=$(echo "${_mwsi1}" | grep 'HEX')
-    _yara_identifiers=$(echo "${_mwsi1}" | grep 'YARA')
-    _cav_identifiers=$(echo "${_mwsi1}" | grep 'CAV')
+    _hex_identifiers=$(echo "${_mwsi1}" | grep 'HEX') #List of all HEX files that were quarantined
+    _yara_identifiers=$(echo "${_mwsi1}" | grep 'YARA') #List of all YARA files that were quarantined
+    _cav_identifiers=$(echo "${_mwsi1}" | grep 'CAV') #List of all CAV files that were quarantined
 
     # Print domain name and quarantined site files
     echo "Domain name: ${_domain}"
@@ -27,7 +20,7 @@ mwtool() {
     echo "$quarantined_files"
     echo -e "\n============================\n"
 
-    # Print malware signature identifiers
+    # Sort and print HEX identifiers first, followed by YARA identifiers, ending with CAV
     echo "Malware signature identifiers:"
     printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort
     echo -e "\n============================\n"
@@ -43,6 +36,36 @@ mwtool() {
       echo -e "\n============================\n"
     }
     investigate_hex_files
+  
+# Hexadecimal to ASCII conversion
+echo "Hexadecimal to ASCII:"
+file="/usr/local/maldetect/sigs/hex.dat"
+output=""
+prev_result=""
+
+while IFS= read -r line; do
+  _mwshex=$(echo "$line" | awk -F":{HEX}" '{print $1}')
+  _mwsascii=$(echo "$_mwshex" | xxd -r -p)
+
+  if [[ $_mwsascii != $prev_result ]]; then
+    if [[ -n $output ]]; then
+      output+=$'\n'
+    fi
+
+    output+=$_mwsascii
+    prev_result=$_mwsascii
+  fi
+
+done < <(grep "${_hex_identifiers}" "$file")
+
+IFS=$'\n' read -d '' -ra parts <<< "$output"
+
+# Print each part on a new line
+for part in "${parts[@]}"; do
+  echo "$part"
+done
+
+echo -e "\n============================\n"
 
     # YARA file investigation
     echo "YARA file investigation:"
