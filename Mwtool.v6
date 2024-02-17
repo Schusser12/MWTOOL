@@ -18,7 +18,7 @@ mwtool() {
     echo "Domain name: ${_domain}"
     echo -e "\n============================\n"
     echo "Quarantined site files:"
-    echo "$quarantined_files"
+    echo "$quarantined_files" | awk -F'\t' -v domain="${_domain}" '$0 ~ domain {print $0}'
     echo -e "\n============================\n"
 
     # Sort and print HEX identifiers first, followed by YARA identifiers, ending with CAV
