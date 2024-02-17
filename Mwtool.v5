@@ -12,12 +12,11 @@ _domain=$(sup_getdomain)
   # Print quarantined site files
   echo "Quarantined site files:"
   quarantined_files=$(sup_quarantined)
-  #echo "$quarantined_files" | awk -F'\t' -v domain="${_domain}" '$0 ~ domain {print $0}' | sort -k4n -k2M -k3n #Sort quarantined files by date
   echo "$quarantined_files"
   echo -e "\n============================\n"
 
   # Malware signature identifiers
-  _mwsi1=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $7}') #Malware string identifier
+  #_mwsi1=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $5}') #Malware string identifier
   _hex_identifiers=""
   _yara_identifiers=""
   _cav_identifiers=""
