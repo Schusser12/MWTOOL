@@ -9,9 +9,9 @@ mwtool() {
     
     # Extract malware signature identifiers
     _mwsi1=$(echo "$quarantined_files" | awk -v domain="${_domain}" '$0 ~ domain {print $5}')
-    _hex_identifiers=$(echo "${_mwsi1}" | grep 'HEX') #List of all HEX files that were quarantined
-    _yara_identifiers=$(echo "${_mwsi1}" | grep 'YARA') #List of all YARA files that were quarantined
-    _cav_identifiers=$(echo "${_mwsi1}" | grep 'CAV') #List of all CAV files that were quarantined
+    _hex_identifiers=$(echo "${_mwsi1}" | grep 'HEX' | uniq) #List of all HEX files that were quarantined
+    _yara_identifiers=$(echo "${_mwsi1}" | grep 'YARA' uniq) #List of all YARA files that were quarantined
+    _cav_identifiers=$(echo "${_mwsi1}" | grep 'CAV' uniq) #List of all CAV files that were quarantined
 
     # Print domain name and quarantined site files
     echo "Domain name: ${_domain}"
