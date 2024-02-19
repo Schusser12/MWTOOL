@@ -29,6 +29,12 @@ mwtool() {
     # HEX file investigation
     echo "HEX file investigation:"
     investigate_hex_files() {
+
+    if [ -z "${_hex_identifiers}" ]; then
+    echo "No HEX files detected for conversion"
+    return
+  fi
+
       if [ -n "${_hex_identifiers}" ]; then
         grep "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat
       else
