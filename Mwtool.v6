@@ -26,53 +26,56 @@ mwtool() {
     printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort
     echo -e "\n============================\n"
 
-    # HEX file investigation
+   # HEX File Investigation
     echo "HEX file investigation:"
-    investigate_hex_files() {
-
-    if [ -z "${_hex_identifiers}" ]; then
-    echo "No HEX files detected for conversion"
-    return
-  fi
-
-      if [ -n "${_hex_identifiers}" ]; then
-        grep "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat
-      else
-        echo "There are no HEX files"
-      fi
-      echo -e "\n============================\n"
-    }
-    investigate_hex_files
-  
-# Hexadecimal to ASCII conversion
-echo "Hexadecimal to ASCII:"
-file="/usr/local/maldetect/sigs/hex.dat"
-output=""
-prev_result=""
-
-while IFS= read -r line; do
-  _mwshex=$(echo "$line" | awk -F":{HEX}" '{print $1}')
-  _mwsascii=$(echo "$_mwshex" | xxd -r -p)
-
-  if [[ $_mwsascii != $prev_result ]]; then
-    if [[ -n $output ]]; then
-      output+=$'\n'
+  function investigate_hex_files() {
+    if [[ -n "${_hex_identifiers}" ]]; then
+      grep "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat
     fi
 
-    output+=$_mwsascii
-    prev_result=$_mwsascii
+    echo -e "\n============================\n"
+
+
+ # Hexadecimal to ASCII conversion
+    echo "Hexadecimal to ASCII:"
+
+    file="/usr/local/maldetect/sigs/hex.dat"
+    output=""
+    prev_result=""
+
+    while IFS= read -r line; do
+      _mwshex=$(echo "$line" | awk -F":{HEX}" '{print $1}')
+      _mwsascii=$(echo "$_mwshex" | xxd -r -p)
+
+      if [[ $_mwsascii != $prev_result ]]; then
+        if [[ -n $output ]]; then
+          output+=$'\n'
+        fi
+
+        output+=$_mwsascii
+        prev_result=$_mwsascii
+      fi
+
+    done < <(grep "${_hex_identifiers}" "$file")
+
+    IFS=$'\n' read -d '' -ra parts <<< "$output"
+
+    # Print each part on a new line
+    for part in "${parts[@]}"; do
+      echo "$part"
+    done
+
+    echo -e "\n============================\n"
+  }
+
+ # Call the function if HEX files are detected
+  if [[ -n "${_hex_identifiers}" ]]; then
+    investigate_hex_files
+  else
+    echo "There are no HEX files"
+    echo -e "\n============================\n"
   fi
 
-done < <(grep "${_hex_identifiers}" "$file")
-
-IFS=$'\n' read -d '' -ra parts <<< "$output"
-
-# Print each part on a new line
-for part in "${parts[@]}"; do
-  echo "$part"
-done
-
-echo -e "\n============================\n"
 
     # YARA file investigation
     echo "YARA file investigation:"
