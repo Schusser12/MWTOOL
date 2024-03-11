@@ -6,6 +6,17 @@ mwtool() {
       -d | --days )           shift
                               days=$1
                               ;;
+       -h | --help )
+                              echo "Usage: mwtool [options]"
+                              echo "Options:"
+                              echo "  -d, --days DAYS  Specify number of days for the analysis (default: all)"
+                              echo "  -h, --help        Display this help message"
+                              return 0
+                              ;;
+      * )
+                              echo "Invalid option. Use mwtool --help for usage information."
+                              return 1
+                              ;;
     esac
     shift
   done
