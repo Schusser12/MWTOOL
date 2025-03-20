@@ -132,11 +132,11 @@ mwtool() {
     # Maldet event log investigation
     read_files() {
     # Read file paths from the command output
-    file_paths=$(echo "$quarantined_files"| grep ${_domain} | awk '{print $4}')
+    file_paths=$(echo "$quarantined_files" | grep "${_domain}" | awk '{print $4}' 2>/dev/null)
 
     # Iterate over each file path and read the content using sudo cat
     echo "$file_paths" | while IFS= read -r file_path; do
-        sudo cat "${file_path}.info"
+        sudo cat "${file_path}.info" 2>/dev/null
     done
    }
    echo -e "Maldet event log:\n"
