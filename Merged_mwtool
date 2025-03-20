@@ -1,0 +1,145 @@
+# Merged Malware Look-up Tool - Supports per-site and per-user analysis
+merged_mwtool() {
+    # Parse command line options
+    while [[ "$1" != "" ]]; do
+        case $1 in
+            -d | --days)
+                shift
+                days=$1
+                ;;
+            -h | --help)
+                echo "Usage: merged_mwtool [options]"
+                echo "Options:"
+                echo "  -d, --days DAYS  Specify number of days for the analysis (default: all)"
+                echo "  -h, --help       Display this help message"
+                return 0
+                ;;
+            *)
+                echo "Invalid option. Use merged_mwtool --help for usage information."
+                return 1
+                ;;
+        esac
+        shift
+    done
+
+    output_file="~/merged_mwtool-$(date +%m-%d-%yT%H:%M).txt"
+    {
+        # Get domain and user info
+        _domain=$(sup_getdomain)
+        _user=$(sup_getusr)
+        quarantined_files=$(sup_quarantined)
+
+        # Extract per-user quarantined file paths
+        user_files=$(grep "$_user" /chroot/quarantine/*.info /usr/local/maldetect/quarantine/*.info 2>/dev/null | awk -F':' '{print $NF}')
+        
+        # Apply date filtering if specified
+        if [ -n "$days" ]; then
+            quarantined_files=$(echo "$quarantined_files" | awk -v days="$days" -v date=$(date -d "-$days days" +%Y-%m-%d) '$2 >= date')
+            user_files=$(echo "$user_files" | awk -v days="$days" -v date=$(date -d "-$days days" +%Y-%m-%d) '$2 >= date')
+        fi
+
+        # Extract malware identifiers (per-site and per-user)
+        _mwsi1=$(echo "$quarantined_files" | awk -v domain="$_domain" '$0 ~ domain {print $5}')
+        _mwsi2=$(echo "$quarantined_files" | grep "$user_files" | awk '{print $5}')
+        
+        _hex_identifiers=$(echo -e "${_mwsi1}\n${_mwsi2}" | grep 'HEX' | uniq)
+        _yara_identifiers=$(echo -e "${_mwsi1}\n${_mwsi2}" | grep 'YARA' | uniq)
+        _cav_identifiers=$(echo -e "${_mwsi1}\n${_mwsi2}" | grep 'CAV' | uniq)
+        
+        echo "Domain name: $_domain"
+        echo "User: $_user"
+        echo -e "\n============================\n"
+        
+        # Print quarantined files per site and per user
+        echo "Quarantined site files:"
+        echo "$quarantined_files" | awk -F'\t' -v domain="$_domain" '$0 ~ domain {print $0}'
+        echo -e "\n============================\n"
+        echo "Quarantined user files:"
+        if [[ -n "$user_files" ]]; then
+            echo "$quarantined_files" | grep "$user_files"
+        else
+            echo "No quarantined files found for the user."
+        fi
+        echo -e "\n============================\n"
+        
+        # Malware signature identifiers
+        echo "Malware signature identifiers:"
+        printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort
+        echo -e "\n============================\n"
+        
+        # Investigate HEX files
+        echo "HEX file investigation:"
+        function investigate_hex_files() {
+            if [[ -n "${_hex_identifiers}" ]]; then
+                grep "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat
+            fi
+            echo -e "\n============================\n"
+            echo "Hexadecimal to ASCII:"  
+            file="/usr/local/maldetect/sigs/hex.dat"
+            output=""
+            prev_result=""
+            while IFS= read -r line; do
+                _mwshex=$(echo "$line" | awk -F":{HEX}" '{print $1}')
+                _mwsascii=$(echo "$_mwshex" | xxd -r -p)
+                if [[ $_mwsascii != $prev_result ]]; then
+                    if [[ -n $output ]]; then
+                        output+=$'\n'
+                    fi
+                    output+=$_mwsascii
+                    prev_result=$_mwsascii
+                fi
+            done < <(grep "${_hex_identifiers}" "$file")
+            IFS=$'\n' read -d '' -ra parts <<< "$output"
+            for part in "${parts[@]}"; do
+                echo "$part"
+            done
+            echo -e "\n============================\n"
+        }
+        if [[ -n "${_hex_identifiers}" ]]; then
+            investigate_hex_files
+        else
+            echo "There are no HEX files"
+            echo -e "\n============================\n"
+        fi
+        
+        # YARA file investigation
+        echo "YARA file investigation:"
+        function investigate_yara_files() {
+            if [ -n "${_yara_identifiers}" ]; then
+                declare -A yara_outputs
+                while IFS= read -r line; do
+                    _mwsyara=$(echo "$line" | awk 'match($0, /{YARA}/) {print substr($0, RSTART+6)}')
+                    _mwsoutput=$(sup_inspectmal -f "$quarantined_files" -s "$_mwsyara" 2>/dev/null)
+                    if [ -n "$_mwsoutput" ] && [ -z "${yara_outputs[$_mwsoutput]}" ]; then
+                        yara_outputs[$_mwsoutput]=1
+                        echo "$_mwsoutput"
+                    fi
+                done <<< "${_yara_identifiers}"
+            else
+                echo "There are no YARA files"
+            fi
+            echo -e "\n============================\n"
+        }
+        investigate_yara_files
+        
+        # CAV file investigation
+        echo "CAV file investigation:"
+        echo "Not implemented yet!"
+        echo -e "\n============================\n"
+        
+        # Maldet event log investigation
+        function read_files() {
+            file_paths=$(echo "$quarantined_files" | grep "$_domain" | awk '{print $4}' 2>/dev/null)
+            if [[ -n "$user_files" ]]; then
+                file_paths+=$(echo "$quarantined_files" | grep "$user_files" | awk '{print $4}' 2>/dev/null)
+            fi
+            echo "$file_paths" | while IFS= read -r file_path; do
+                sudo cat "${file_path}.info" 2>/dev/null
+            done
+        }
+        echo -e "Maldet event log:\n"
+        read_files
+    } > ~/merged_mwtool-$(date +%m-%d-%yT%H:%M).txt;
+    
+    echo "Output redirected to: $output_file" > /dev/tty
+}
