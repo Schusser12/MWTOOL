@@ -1,0 +1,135 @@
+tmpmwtool ()
+{
+    while [[ "$1" != "" ]]; do
+        case $1 in
+            -d | --days)
+                shift;
+                days=$1
+            ;;
+            -h | --help)
+                echo "Usage: mwtool [options]";
+                echo "Options:";
+                echo "  -d, --days DAYS  Specify number of days for the analysis (default: all)";
+                echo "  -h, --help        Display this help message";
+                return 0
+            ;;
+            *)
+                echo "Invalid option. Use mwtool --help for usage information.";
+                return 1
+            ;;
+        esac;
+        shift;
+    done;
+    output_file="~/tmpmwtool-$(date +%m-%d-%yT%H:%M).txt";
+    {
+        _domain=$(sup_getdomain);
+        quarantined_files=$(sup_quarantined);
+_user=$(sup_getusr)
+
+# Extract original paths of quarantined files owned by the Unix user
+user_files=$(grep "$_user" /chroot/quarantine/*.info /usr/local/maldetect/quarantine/*.info 2>/dev/null | awk -F':' '{print $NF}')
+# Filter user files based on the specified number of days
+           if [ -n "$days" ]; then
+      user_files=$(echo "$user_files" | awk -v days="$days" -v date=$(date -d "-$days days" +%Y-%m-%d) '$2 >= date')
+    fi
+
+if [[ -z "$user_files" ]]; then
+    _mwsi2=""
+else
+    _mwsi2=$(echo "$quarantined_files" | grep "$user_files" | awk '{print $5}')
+fi
+        _hex_identifiers=$(echo "${_mwsi2}" | grep 'HEX' | uniq);
+        _yara_identifiers=$(echo "${_mwsi2}" | grep 'YARA' | uniq);
+        _cav_identifiers=$(echo "${_mwsi2}" | grep 'CAV' | uniq);
+
+        echo "Domain name: ${_domain}";
+        echo -e "\n============================\n";
+
+        echo "Quarantined temporary PHP files:";
+if [[ -n "$user_files" ]]; then
+    echo "$quarantined_files" | grep "$user_files"
+else
+    echo "No quarantined files found for the user."
+fi
+        echo -e "\n============================\n";
+
+        echo "Malware signature identifiers:";
+        printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort;
+        echo -e "\n============================\n";
+        echo "HEX file investigation:";
+
+        function investigate_hex_files ()
+        {
+            if [[ -n "${_hex_identifiers}" ]]; then
+                grep --color=auto "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat;
+            fi;
+            echo -e "\n============================\n";
+            echo "Hexadecimal to ASCII:";
+            file="/usr/local/maldetect/sigs/hex.dat";
+            output="";
+            prev_result="";
+            while IFS= read -r line; do
+                _mwshex=$(echo "$line" | awk -F":{HEX}" '{print $1}');
+                _mwsascii=$(echo "$_mwshex" | xxd -r -p);
+                if [[ $_mwsascii != $prev_result ]]; then
+                    if [[ -n $output ]]; then
+                        output+='
+';
+                    fi;
+                    output+=$_mwsascii;
+                    prev_result=$_mwsascii;
+                fi;
+            done < <(grep "${_hex_identifiers}" "$file");
+            IFS='
+' read -d '' -ra parts <<< "$output";
+            for part in "${parts[@]}";
+            do
+                echo "$part";
+            done;
+            echo -e "\n============================\n"
+        };
+        if [[ -n "${_hex_identifiers}" ]]; then
+            investigate_hex_files;
+        else
+            echo "There are no HEX files";
+            echo -e "\n============================\n";
+        fi;
+        echo "YARA file investigation:";
+        function investigate_yara_files ()
+        {
+            if [ -n "${_yara_identifiers}" ]; then
+                declare -A yara_outputs;
+                while IFS= read -r line; do
+                    _mwsyara=$(echo "$line" | awk 'match($0, /{YARA}/) {print substr($0, RSTART+6)}');
+                    _mwsoutput=$(sup_inspectmal -f "$quarantined_files" -s "$_mwsyara" 2>/dev/null);
+                    if [ -n "$_mwsoutput" ] && [ -z "${yara_outputs[$_mwsoutput]}" ]; then
+                        yara_outputs[$_mwsoutput]=1;
+                        echo "$_mwsoutput";
+                    fi;
+                done <<< "${_yara_identifiers}";
+            else
+                echo "There are no YARA files";
+            fi;
+            echo -e "\n============================\n"
+        };
+        investigate_yara_files;
+        echo "CAV file investigation:";
+        echo "Not implemented yet!";
+        echo -e "\n============================\n";
+        function read_files ()
+        {
+if [[ -n "$user_files" ]]; then
+    file_paths=$(echo "$quarantined_files" | grep "${user_files}" | awk '{print $4}' 2>/dev/null)
+
+    echo "$file_paths" | while IFS= read -r file_path; do
+        sudo cat "${file_path}.info" 2>/dev/null
+    done
+else
+    echo "No quarantined file paths found for the user."
+fi
+        };
+        echo -e "Maldet event log:\n";
+        read_files
+    } > ~/tmpmwtool-$(date +%m-%d-%yT%H:%M).txt;
+    echo "Output redirected to: $output_file" > /dev/tty
+}
