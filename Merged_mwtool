@@ -51,16 +51,24 @@ merged_mwtool() {
         echo -e "\n============================\n"
         
         # Print quarantined files per site and per user
-        echo "Quarantined site files:"
-        echo "$quarantined_files" | awk -F'\t' -v domain="$_domain" '$0 ~ domain {print $0}'
-        echo -e "\n============================\n"
-        echo "Quarantined user files:"
-        if [[ -n "$user_files" ]]; then
-            echo "$quarantined_files" | grep "$user_files"
-        else
-            echo "No quarantined files found for the user."
-        fi
-        echo -e "\n============================\n"
+       echo "Quarantined site files:"
+       site_output=$(echo "$quarantined_files" | awk -F'\t' -v domain="$_domain" '$0 ~ domain {print $0}')
+       echo "$site_output"
+       echo -e "\n============================\n"
+
+       echo "Quarantined user files:"
+       user_output=""
+       if [[ -n "$user_files" ]]; then
+           user_output=$(echo "$quarantined_files" | grep "$user_files")
+           if [[ "$user_output" == "$site_output" ]]; then
+               echo "Same as site-level quarantined files (not shown again)."
+           else
+               echo "$user_output"
+           fi
+       else
+           echo "No quarantined files found for the user."
+       fi
+       echo -e "\n============================\n"
         
         # Malware signature identifiers
         echo "Malware signature identifiers:"
