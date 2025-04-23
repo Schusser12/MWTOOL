@@ -11,7 +11,7 @@ A shell-based utility for investigating quarantined malware files across both si
 - 🔍 **Malware signature inspection**:
   - HEX pattern analysis (with ASCII translation)
   - YARA rule insights
-  - (CAV inspection placeholder — ready for future implementation)
+  - 🐚 CAV/ClamAV detection results (e.g., `Win.Trojan.Remcos`, `Win.Dropper.NetWire`, etc.)
 - 🧠 Smart **deduplication** between site and user findings
 - 📄 Auto-generated timestamped reports
 
