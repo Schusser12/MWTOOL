@@ -132,7 +132,23 @@ merged_mwtool() {
         
         # CAV file investigation
         echo "CAV file investigation:"
-        echo "Not implemented yet!"
+        function investigate_cav_files() {
+            if [ -n "${_cav_identifiers}" ]; then
+                declare -A cav_outputs
+                while IFS= read -r cav_id; do
+                    match=$(echo "$quarantined_files" | grep "$cav_id")
+                    if [[ -n "$match" ]] && [[ -z "${cav_outputs[$match]}" ]]; then
+                        cav_outputs[$match]=1
+                        echo "$match"
+                    fi
+                done <<< "${_cav_identifiers}"
+            else
+                echo "There are no CAV files"
+            fi
+        echo -e "\n============================\n"
+        }
+        investigate_cav_files
+        
         echo -e "\n============================\n"
         
         # Maldet event log investigation
