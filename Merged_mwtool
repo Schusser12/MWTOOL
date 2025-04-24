@@ -129,22 +129,65 @@ merged_mwtool() {
             echo -e "\n============================\n"
         }
         investigate_yara_files
-        
+
+# -------------------------------
+# CAV Signature Descriptions
+# -------------------------------
+declare -A cav_descriptions=(
+    ["Win.Malware.Agent"]="Generic malware label for suspicious or trojan behavior."
+    ["Win.Malware.Dropperx"]="Installs or drops additional malicious components."
+    ["Win.Malware.Obfuscator"]="Heavily obfuscated code used to evade detection."
+    ["Win.Malware.Packer"]="Packed malware, possibly concealing other payloads."
+    ["Win.Trojan.Generic"]="Generic trojan behavior detected — could be multiple types."
+    ["Win.Trojan.BazarLoader"]="Downloader for follow-up malware like Cobalt Strike or ransomware."
+    ["Win.Trojan.Zusy"]="Trojan targeting banking data and user credentials."
+    ["Win.Trojan.Remcos"]="Remcos trojan, used for remote access and surveillance."
+    ["Win.Trojan.Emotet"]="Modular banking trojan, spreads via spam and drops other malware."
+    ["Win.Trojan.AgentTesla"]="Keylogger and info-stealer, often spread via phishing emails."
+    ["Win.Trojan.RedLine"]="Powerful stealer targeting passwords, browser data, and crypto wallets."
+    ["Win.Trojan.Racoon"]="Info-stealer known for browser data and crypto wallet theft."
+    ["Win.Trojan.Hide-2"]="Obfuscated trojan — likely packed or polymorphic in nature."
+    ["Win.Dropper.Remcos"]="Drops the Remcos RAT, enabling remote system control."
+    ["Win.Dropper.Formbook"]="Deploys Formbook, a credential and form data stealer."
+    ["Win.Dropper.LokiBot"]="Delivers LokiBot, which steals passwords and crypto wallets."
+    ["Win.Dropper.NetWire"]="Installs the NetWire RAT for remote system access."
+    ["Win.Dropper.Nanocore"]="Used to drop Nanocore RAT for system spying/control."
+    ["Win.Dropper.Quasar"]="Drops Quasar RAT, a lightweight remote control tool."
+    ["Win.Dropper.DarkComet"]="Installs DarkComet RAT, used for spying and keylogging."
+    ["Win.Dropper.XtremeRat"]="Delivers XtremeRAT, enabling full remote control over a system."
+    ["Win.Exploit.Kit"]="Exploit kit attempting to compromise vulnerable systems."
+    ["Win.Loader.FakeUpdate"]="Fake software updater that installs malware."
+    ["Win.Ransom.Stop"]="STOP/DJVU ransomware family, encrypts files and appends random extensions."
+    ["Win.Ransom.Locky"]="Old but notable ransomware, spread through malicious email attachments."
+    ["Win.Ransom.Phobos"]="Ransomware similar to Dharma, targeting RDP-exposed hosts."
+    ["Doc.Downloader.Generic"]="Generic document-based downloader (macros, embedded scripts)."
+    ["Doc.Dropper.Emotet"]="Malicious document dropping Emotet malware."
+    ["Doc.Dropper.Agent"]="Office document dropping a generic payload (likely malware)."
+    ["Txt.Backdoor.Webshell"]="Text-based webshell backdoor for remote server control (often PHP/ASP)."
+    ["Php.Malware.Agent"]="Generic PHP malware — often obfuscated shells or injection tools."
+    ["Unix.Malware.Ngioweb"]="Proxy bot/backdoor used in advanced botnet infrastructures."
+    ["Multios.Coinminer.Miner"]="Cross-platform coinminer — abuses system resources for crypto mining."
+    ["Heuristics.Phishing.Email.SpoofedDomain"]="Likely phishing email using a spoofed domain — flagged heuristically."
+)
+
         # CAV file investigation
         echo "CAV file investigation:"
-        function investigate_cav_files() {
+function investigate_cav_files() {
     echo -e "\nSummary:"
     if [ -n "${_cav_identifiers}" ]; then
-        echo "${_cav_identifiers}" | \
-        sed 's/{CAV}//' | \
-        awk -F'-' '{print $1}' | \
-        sort | uniq -c | sort -nr | \
-        awk '{printf "• %s: %s file(s)\n", $2, $1}'
+        echo "${_cav_identifiers}" | sed 's/{CAV}//' | awk -F'-' '{print $1}' | sort | uniq -c | sort -nr | while read -r count signature; do
+            description="${cav_descriptions[$signature]}"
+            if [[ -n "$description" ]]; then
+                printf "• %s: %s file(s) – %s\n" "$signature" "$count" "$description"
+            else
+                printf "• %s: %s file(s) – [No description available]\n" "$signature" "$count"
+            fi
+        done
     else
         echo "There are no CAV files"
     fi
     echo -e "\n============================\n"
-        }
+}
         investigate_cav_files
 
         # Maldet event log investigation
