@@ -203,15 +203,18 @@ function investigate_cav_files() {
         investigate_cav_files
 
         # Maldet event log investigation
-        function read_files() {
-            file_paths=$(echo "$quarantined_files" | grep "$_domain" | awk '{print $4}' 2>/dev/null)
-            if [[ -n "$user_files" ]]; then
-                file_paths+=$(echo "$quarantined_files" | grep "$user_files" | awk '{print $4}' 2>/dev/null)
-            fi
-            echo "$file_paths" | while IFS= read -r file_path; do
-                sudo cat "${file_path}.info" 2>/dev/null
-            done
-        }
+function read_files () {
+    file_paths=$( {
+        echo "$quarantined_files" | awk -v domain="$_domain" '$0 ~ domain {print $4}';
+        if [[ -n "$user_files" ]]; then
+            grep -Ff <(echo "$user_files") <<< "$quarantined_files" | awk '{print $4}';
+        fi
+    } | sort -u )
+
+    echo "$file_paths" | while IFS= read -r file_path; do
+        sudo cat "${file_path}.info" 2>/dev/null
+    done
+}
         echo -e "Maldet event log:\n"
         read_files
     } > ~/merged_mwtool-$(date +%m-%d-%yT%H:%M).txt;
