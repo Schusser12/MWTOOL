@@ -56,23 +56,35 @@ merged_mwtool() {
        echo "$site_output"
        echo -e "\n============================\n"
 
-       echo "Quarantined user files:"
-       user_output=""
+    echo "Quarantined user files:"
        if [[ -n "$user_files" ]]; then
-           user_output=$(echo "$quarantined_files" | grep "$user_files")
-           if [[ "$user_output" == "$site_output" ]]; then
-               echo "Same as site-level quarantined files (not shown again)."
-           else
-               echo "$user_output"
+       # Find files quarantined for user
+       user_output=$(grep -Ff <(echo "$user_files") <<< "$quarantined_files")
+
+       # Subtract what was already printed under site
+       site_paths=$(echo "$site_output" | awk '{print $3}')  # get original paths from site
+       ser_lines=""
+       while IFS= read -r line; do
+           path=$(echo "$line" | awk '{print $3}')
+           if ! grep -Fxq "$path" <<< "$site_paths"; then
+            user_lines+="$line"$'\n'
            fi
+       done <<< "$user_output"
+
+       if [[ -n "$user_lines" ]]; then
+           echo "$user_lines"
+       else
+           echo "No additional quarantined user files."
+       fi
        else
            echo "No quarantined files found for the user."
        fi
-       echo -e "\n============================\n"
+    echo -e "\n============================\n"
+
         
         # Malware signature identifiers
         echo "Malware signature identifiers:"
-        printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort
+        printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort | uniq
         echo -e "\n============================\n"
         
         # Investigate HEX files
