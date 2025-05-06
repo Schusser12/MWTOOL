@@ -1,13 +1,13 @@
 # 🛡️ Merged Malware Look-up Tool (`merged_mwtool`)
 
-A shell-based utility for investigating quarantined malware files across both site and user scopes. Designed to integrate with tools like `maldetect`, this script supports intelligent deduplication, signature inspection, and basic timeline filtering.
+Bash function for investigating quarantined malware files across both site and user scopes.
 
 ---
 
 ## 🚀 Features
 
 - **Date-based filtering** (e.g., last `N` days)
-- **Per-user** and 🌐 **per-domain** quarantine analysis
+- **Per-user** and **per-domain** quarantine analysis
 -  **Malware signature inspection**:
   - HEX pattern analysis (with ASCII translation)
   - YARA rule insights
@@ -43,13 +43,3 @@ Generates a timestamped text report in your home directory:
 ```
 ~/merged_mwtool-04-24-25T14:32.txt
 ```
-
-Includes:
-
-- Quarantined file paths (site-level and user-level)
-- Malware identifiers (HEX, YARA, CAV)
-- HEX investigation (decoded ASCII patterns)
-- YARA rule matches
-- Event logs for each quarantined item
-
----
