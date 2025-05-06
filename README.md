@@ -6,14 +6,14 @@ A shell-based utility for investigating quarantined malware files across both si
 
 ## 🚀 Features
 
-- 📅 **Date-based filtering** (e.g., last `N` days)
-- 👤 **Per-user** and 🌐 **per-domain** quarantine analysis
-- 🔍 **Malware signature inspection**:
+- **Date-based filtering** (e.g., last `N` days)
+- **Per-user** and 🌐 **per-domain** quarantine analysis
+-  **Malware signature inspection**:
   - HEX pattern analysis (with ASCII translation)
   - YARA rule insights
-  - 🐚 CAV/ClamAV detection results (e.g., `Win.Trojan.Remcos`, `Win.Dropper.NetWire`, etc.)
-- 🧠 Smart **deduplication** between site and user findings
-- 📄 Auto-generated timestamped reports
+  -  CAV/ClamAV detection results (e.g., `Win.Trojan.Remcos`, `Win.Dropper.NetWire`, etc.)
+- Smart **deduplication** between site and user findings
+- Auto-generated timestamped reports
 
 ---
 
