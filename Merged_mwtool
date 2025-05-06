@@ -22,16 +22,26 @@ merged_mwtool() {
         shift
     done
 
-    output_file="~/merged_mwtool-$(date +%m-%d-%yT%H:%M).txt"
+    output_file="$HOME/merged_mwtool-$(date +%m-%d-%yT%H:%M).txt"
     {
         # Get domain and user info
         _domain=$(sup_getdomain)
         _user=$(sup_getusr)
         quarantined_files=$(sup_quarantined)
 
+        # Fail-fast safety checks
+        if [[ -z "$_domain" && -z "$_user" ]]; then
+                  echo "Error: Could not determine domain or user — are you in the correct directory?" >&2
+                  return 1
+        fi
+        if [[ -z "$quarantined_files" || "$(echo "$quarantined_files" | wc -l)" -lt 1 ]]; then
+          echo "Error: No quarantine data found. Aborting." >&2
+          return 1
+        fi
+
         # Extract per-user quarantined file paths
         user_files=$(grep "$_user" /chroot/quarantine/*.info /usr/local/maldetect/quarantine/*.info 2>/dev/null | awk -F':' '{print $NF}')
-        
+
         # Apply date filtering if specified
         if [ -n "$days" ]; then
             quarantined_files=$(echo "$quarantined_files" | awk -v days="$days" -v date=$(date -d "-$days days" +%Y-%m-%d) '$2 >= date')
@@ -39,54 +49,47 @@ merged_mwtool() {
         fi
 
         # Extract malware identifiers (per-site and per-user)
-        _mwsi1=$(echo "$quarantined_files" | awk -v domain="$_domain" '$0 ~ domain {print $5}')
-        _mwsi2=$(echo "$quarantined_files" | grep "$user_files" | awk '{print $5}')
-        
+    _mwsi1=""
+    _mwsi2=""
+
+[[ -n "$_domain" ]] && _mwsi1=$(echo "$quarantined_files" | awk -v domain="$_domain" '$0 ~ domain {print $5}')
+[[ -n "$user_files" ]] && _mwsi2=$(grep -Ff <(echo "$user_files") <<< "$quarantined_files" | awk '{print $5}')
+
         _hex_identifiers=$(echo -e "${_mwsi1}\n${_mwsi2}" | grep 'HEX' | uniq)
         _yara_identifiers=$(echo -e "${_mwsi1}\n${_mwsi2}" | grep 'YARA' | uniq)
         _cav_identifiers=$(echo -e "${_mwsi1}\n${_mwsi2}" | grep 'CAV' | uniq)
-        
+
         echo "Domain name: $_domain"
         echo "User: $_user"
         echo -e "\n============================\n"
-        
+
         # Print quarantined files per site and per user
-       echo "Quarantined site files:"
-       site_output=$(echo "$quarantined_files" | awk -F'\t' -v domain="$_domain" '$0 ~ domain {print $0}')
-       echo "$site_output"
+echo "Quarantined site files:"
+site_output=""
+[[ -n "$_domain" ]] && site_output=$(echo "$quarantined_files" | awk -F'\t' -v domain="$_domain" '$0 ~ domain {print $0}')
+echo "$site_output"
        echo -e "\n============================\n"
 
-    echo "Quarantined user files:"
-       if [[ -n "$user_files" ]]; then
-       # Find files quarantined for user
-       user_output=$(grep -Ff <(echo "$user_files") <<< "$quarantined_files")
+echo "Quarantined user files:"
+user_output=""
+[[ -n "$user_files" ]] && user_output=$(grep -Ff <(echo "$user_files") <<< "$quarantined_files")
 
-       # Subtract what was already printed under site
-       site_paths=$(echo "$site_output" | awk '{print $3}')  # get original paths from site
-       ser_lines=""
-       while IFS= read -r line; do
-           path=$(echo "$line" | awk '{print $3}')
-           if ! grep -Fxq "$path" <<< "$site_paths"; then
-            user_lines+="$line"$'\n'
-           fi
-       done <<< "$user_output"
+if [[ -n "$user_output" ]]; then
+    if [[ "$user_output" == "$site_output" ]]; then
+        echo "Same as site-level quarantined files (not shown again)."
+    else
+        echo "$user_output"
+    fi
+else
+    echo "No quarantined files found for the user."
+fi
+       echo -e "\n============================\n"
 
-       if [[ -n "$user_lines" ]]; then
-           echo "$user_lines"
-       else
-           echo "No additional quarantined user files."
-       fi
-       else
-           echo "No quarantined files found for the user."
-       fi
-    echo -e "\n============================\n"
-
-        
         # Malware signature identifiers
         echo "Malware signature identifiers:"
-        printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort | uniq
+        printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort
         echo -e "\n============================\n"
-        
+
         # Investigate HEX files
         echo "HEX file investigation:"
         function investigate_hex_files() {
@@ -94,7 +97,7 @@ merged_mwtool() {
                 grep "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat
             fi
             echo -e "\n============================\n"
-            echo "Hexadecimal to ASCII:"  
+            echo "Hexadecimal to ASCII:"
             file="/usr/local/maldetect/sigs/hex.dat"
             output=""
             prev_result=""
@@ -121,7 +124,7 @@ merged_mwtool() {
             echo "There are no HEX files"
             echo -e "\n============================\n"
         fi
-        
+
         # YARA file investigation
         echo "YARA file investigation:"
         function investigate_yara_files() {
@@ -203,21 +206,15 @@ function investigate_cav_files() {
         investigate_cav_files
 
         # Maldet event log investigation
-function read_files () {
-    file_paths=$( {
-        echo "$quarantined_files" | awk -v domain="$_domain" '$0 ~ domain {print $4}';
-        if [[ -n "$user_files" ]]; then
-            grep -Ff <(echo "$user_files") <<< "$quarantined_files" | awk '{print $4}';
-        fi
-    } | sort -u )
-
-    echo "$file_paths" | while IFS= read -r file_path; do
-        sudo cat "${file_path}.info" 2>/dev/null
+function read_files() {
+    file_paths=$(echo "$quarantined_files" | awk '{print $4}' 2>/dev/null)
+    for file in $file_paths; do
+        [[ -f "${file}.info" ]] && sudo cat "${file}.info" 2>/dev/null
     done
 }
         echo -e "Maldet event log:\n"
         read_files
     } > ~/merged_mwtool-$(date +%m-%d-%yT%H:%M).txt;
-    
+
     echo "Output redirected to: $output_file" > /dev/tty
 }
