@@ -206,10 +206,15 @@ function investigate_cav_files() {
         investigate_cav_files
 
         # Maldet event log investigation
-function read_files() {
+function read_files () {
     file_paths=$(echo "$quarantined_files" | awk '{print $4}' 2>/dev/null)
+
     for file in $file_paths; do
-        [[ -f "${file}.info" ]] && sudo cat "${file}.info" 2>/dev/null
+        info_file="${file}.info"
+
+        if [[ "$file" == *"$_user"* || "$file" == *"$_domain"* ]]; then
+            [[ -f "$info_file" ]] && sudo cat "$info_file" 2>/dev/null
+        fi
     done
 }
         echo -e "Maldet event log:\n"
