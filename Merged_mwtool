@@ -61,43 +61,43 @@ merged_mwtool() {
 
         echo "Domain name: $_domain"
         echo "User: $_user"
-        echo -e "\n============================\n"
+        echo -e "\n============================"
 
         # Print quarantined files per site and per user
-echo "Quarantined site files:"
+echo -e "Quarantined site files:\n"
 site_output=""
 [[ -n "$_domain" ]] && site_output=$(echo "$quarantined_files" | awk -F'\t' -v domain="$_domain" '$0 ~ domain {print $0}')
 echo "$site_output"
-       echo -e "\n============================\n"
+       echo -e "\n============================"
 
-echo "Quarantined user files:"
+echo -e "Quarantined user files:\n"
 user_output=""
 [[ -n "$user_files" ]] && user_output=$(grep -Ff <(echo "$user_files") <<< "$quarantined_files")
 
 if [[ -n "$user_output" ]]; then
     if [[ "$user_output" == "$site_output" ]]; then
-        echo "Same as site-level quarantined files (not shown again)."
+        echo "Same as site-level quarantined files (not shown again)"
     else
         echo "$user_output"
     fi
 else
-    echo "No quarantined files found for the user."
+    echo "No quarantined files found for the user"
 fi
-       echo -e "\n============================\n"
+       echo -e "\n============================"
 
         # Malware signature identifiers
         echo "Malware signature identifiers:"
         printf "%s\n" "${_hex_identifiers}" "${_yara_identifiers}" "${_cav_identifiers}" | sort
-        echo -e "\n============================\n"
+        echo -e "\n============================"
 
         # Investigate HEX files
-        echo "HEX file investigation:"
+        echo -e "HEX file investigation:\n"
         function investigate_hex_files() {
             if [[ -n "${_hex_identifiers}" ]]; then
                 grep "${_hex_identifiers}" /usr/local/maldetect/sigs/hex.dat
             fi
-            echo -e "\n============================\n"
-            echo "Hexadecimal to ASCII:"
+            echo -e "\n============================"
+            echo -e "Hexadecimal to ASCII:\n"
             file="/usr/local/maldetect/sigs/hex.dat"
             output=""
             prev_result=""
@@ -116,17 +116,17 @@ fi
             for part in "${parts[@]}"; do
                 echo "$part"
             done
-            echo -e "\n============================\n"
+            echo -e "\n============================"
         }
         if [[ -n "${_hex_identifiers}" ]]; then
             investigate_hex_files
         else
             echo "There are no HEX files"
-            echo -e "\n============================\n"
+            echo -e "\n============================"
         fi
 
         # YARA file investigation
-        echo "YARA file investigation:"
+        echo -e "YARA file investigation:\n"
         function investigate_yara_files() {
             if [ -n "${_yara_identifiers}" ]; then
                 declare -A yara_outputs
@@ -141,7 +141,7 @@ fi
             else
                 echo "There are no YARA files"
             fi
-            echo -e "\n============================\n"
+            echo -e "\n============================"
         }
         investigate_yara_files
 
@@ -201,7 +201,7 @@ function investigate_cav_files() {
     else
         echo "There are no CAV files"
     fi
-    echo -e "\n============================\n"
+    echo -e "\n============================"
 }
         investigate_cav_files
 
@@ -212,8 +212,12 @@ function read_files () {
     for file in $file_paths; do
         info_file="${file}.info"
 
-        if [[ "$file" == *"$_user"* || "$file" == *"$_domain"* ]]; then
-            [[ -f "$info_file" ]] && sudo cat "$info_file" 2>/dev/null
+        if [[ -f "$info_file" ]]; then
+            if grep -qE "$_user|$_domain" "$info_file"; then
+                echo "--- Contents of $info_file ---"
+                sudo cat "$info_file" 2>/dev/null
+                echo ""
+            fi
         fi
     done
 }
