@@ -162,6 +162,7 @@ declare -A cav_descriptions=(
     ["Win.Trojan.RedLine"]="Powerful stealer targeting passwords, browser data, and crypto wallets."
     ["Win.Trojan.Racoon"]="Info-stealer known for browser data and crypto wallet theft."
     ["Win.Trojan.Hide-2"]="Obfuscated trojan — likely packed or polymorphic in nature."
+    ["Win.Trojan.C99"]="C99 PHP webshell — a backdoor used by attackers to control compromised websites."
     ["Win.Dropper.Remcos"]="Drops the Remcos RAT, enabling remote system control."
     ["Win.Dropper.Formbook"]="Deploys Formbook, a credential and form data stealer."
     ["Win.Dropper.LokiBot"]="Delivers LokiBot, which steals passwords and crypto wallets."
